@@ -50,6 +50,12 @@ type ListFilesArgs struct {
 	Path string `json:"path"`
 }
 
+type ReadFileArgs struct {
+	Path      string `json:"path"`
+	StartLine *int   `json:"start_line,omitempty"`
+	EndLine   *int   `json:"end_line,omitempty"`
+}
+
 type StreamChunk struct {
 	Choices []struct {
 		Delta struct {
