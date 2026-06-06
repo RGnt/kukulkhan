@@ -56,6 +56,11 @@ type ReadFileArgs struct {
 	EndLine   *int   `json:"end_line,omitempty"`
 }
 
+type WriteFileArgs struct {
+	Path    string `json:"path"`
+	Content string `json:"content"`
+}
+
 type StreamChunk struct {
 	Choices []struct {
 		Delta struct {

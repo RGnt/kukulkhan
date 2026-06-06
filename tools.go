@@ -6,6 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+)
+
+var (
+	hasBackup         bool
+	lastBackupPath    string
+	lastBackupContent []byte
+	wasNewlyCreated   bool
 )
 
 // Registry of tools provided to the LLM
@@ -64,6 +72,38 @@ var tools = []Tool{
 			},
 		},
 	},
+	{
+		Type: "function",
+		Function: FunctionDef{
+			Name:        "write_file",
+			Description: "Write entire content to a file. Overwrites existing files and creates missing directories. Automatically backs up the previous state.",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"path": map[string]any{
+						"type":        "string",
+						"description": "The absolute or relative path to the file.",
+					},
+					"content": map[string]any{
+						"type":        "string",
+						"description": "The complete new content of the file.",
+					},
+				},
+				"required": []string{"path", "content"},
+			},
+		},
+	},
+	{
+		Type: "function",
+		Function: FunctionDef{
+			Name:        "revert_file",
+			Description: "Reverts the last write_file operation. Use this immediately if you realize your last file write was incorrect.",
+			Parameters: map[string]any{
+				"type":       "object",
+				"properties": map[string]any{}, // Takes no arguments
+			},
+		},
+	},
 }
 
 // executeTool acts as the central router for LLM function calls
@@ -73,6 +113,10 @@ func executeTool(name string, arguments string) string {
 		return runListFiles(arguments)
 	case "read_file":
 		return runReadFile(arguments)
+	case "write_file":
+		return runWriteFile(arguments)
+	case "revert_file":
+		return runRevertFile()
 	default:
 		return fmt.Sprintf("Error: Unknown tool '%s'", name)
 	}
@@ -155,4 +199,59 @@ func runReadFile(arguments string) string {
 	}
 
 	return result.String()
+}
+
+func runWriteFile(arguments string) string {
+	var args WriteFileArgs
+	if err := json.Unmarshal([]byte(arguments), &args); err != nil {
+		return fmt.Sprintf("Error Parsing arguments: %v", err)
+	}
+
+	info, err := os.Stat(args.Path)
+	if err == nil && !info.IsDir() {
+		// File exists, read, and store its current content
+		existingContent, readErr := os.ReadFile(args.Path)
+		if readErr != nil {
+			return fmt.Sprintf("Error: File exists but failed to read for backup: %v", readErr)
+		}
+		lastBackupContent = existingContent
+		wasNewlyCreated = false
+	} else {
+		lastBackupContent = nil
+		wasNewlyCreated = true
+	}
+
+	lastBackupPath = args.Path
+	hasBackup = true
+
+	dir := filepath.Dir(args.Path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Sprintf("Error creating parents directories %v", err)
+	}
+
+	if err := os.WriteFile(args.Path, []byte(args.Content), 0644); err != nil {
+		return fmt.Sprintf("Error writing file: %v", err)
+	}
+
+	return fmt.Sprintf("Success: Wrote %d bytes to '%s'. Previous state backed up.", len(args.Content), args.Path)
+}
+
+func runRevertFile() string {
+	if !hasBackup {
+		return "Error: No previous file write operations to revert."
+	}
+	if wasNewlyCreated {
+		if err := os.Remove(lastBackupPath); err != nil {
+			return fmt.Sprintf("Error deleting newly created file during revert: %v", err)
+		}
+
+		hasBackup = false
+		return fmt.Sprintf("Success: Reverted creation of '%s' by deleting it", lastBackupPath)
+	}
+
+	if err := os.WriteFile(lastBackupPath, lastBackupContent, 0644); err != nil {
+		return fmt.Sprintf("Error restoring previous content: %v", err)
+	}
+	hasBackup = false
+	return fmt.Sprintf("Success: Restored previous contents of '%s'.", lastBackupPath)
 }
