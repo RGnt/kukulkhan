@@ -1,4 +1,4 @@
-# LLM Tool Agent
+# Kukulkhan agent harness
 
 A Go-based application that enables an LLM to interact with local tools, such as file system operations and mathematical calculations, through a structured tool-calling interface.
 
