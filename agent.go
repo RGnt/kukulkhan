@@ -12,7 +12,7 @@ import (
 )
 
 // RunAgentLoop handles the core ReAct (Reasoning and Acting) cycle with streaming
-func RunAgentLoop(history []Message) {
+func RunAgentLoop(history []Message) []Message {
 	serverURL := "http://localhost:8080/v1/chat/completions"
 	temp := 0.0
 	maxSteps := 5
@@ -45,15 +45,11 @@ func RunAgentLoop(history []Message) {
 
 		// The model invoked a tool
 		if len(responseMsg.ToolCalls) > 0 {
-			// Append the model's tool call request to the history
 			history = append(history, responseMsg)
 
 			for _, tc := range responseMsg.ToolCalls {
 				fmt.Printf("\n>> Executing Tool: %s\n", tc.Function.Name)
-
 				toolResult := executeTool(tc.Function.Name, tc.Function.Arguments)
-
-				// Append the tool's result to the history
 				history = append(history, Message{
 					Role:       "tool",
 					Content:    toolResult,
@@ -65,12 +61,15 @@ func RunAgentLoop(history []Message) {
 
 		// The model provided a final text answer
 		if responseMsg.Content != "" {
-			fmt.Println("\n\n[Agent Loop Complete]")
-			return
+			// CRITICAL FIX: Save the final answer to memory before returning
+			history = append(history, responseMsg)
+			fmt.Println("\n")
+			return history
 		}
 	}
 
 	fmt.Println("\n[Agent Error]: Reached maximum steps without returning a final answer.")
+	return history
 }
 
 func streamAndBuildMessage(resp *http.Response) Message {
