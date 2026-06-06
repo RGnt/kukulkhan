@@ -61,9 +61,8 @@ func RunAgentLoop(history []Message) []Message {
 
 		// The model provided a final text answer
 		if responseMsg.Content != "" {
-			// CRITICAL FIX: Save the final answer to memory before returning
 			history = append(history, responseMsg)
-			fmt.Println("\n")
+			fmt.Println()
 			return history
 		}
 	}
