@@ -21,7 +21,8 @@ Writes a file to the local filesystem.
 Usage:
 - This tool will overwrite the existing file if there is one at the provided path.
 - NEVER create documentation files (*.md) or README files unless explicitly requested by the User.
-- Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.`
+- Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.
+- Never write the line numbers in to the file`
 
 var writeFileToolDef = APITool{
 	Type: "function",
