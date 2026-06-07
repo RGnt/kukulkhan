@@ -11,23 +11,64 @@ import (
 	"time"
 )
 
-// RunAgentLoop handles the core ReAct (Reasoning and Acting) cycle with streaming
-func RunAgentLoop(history []Message) []Message {
-	serverURL := "http://localhost:8080/v1/chat/completions"
-	temp := 0.0
-	maxSteps := 5
+func NewAgent(name, role, model string, temp float64, tools []Tool) *Agent {
+	toolMap := make(map[string]Tool)
 
+	var promptBuilder strings.Builder
+	promptBuilder.WriteString(role)
+
+	if len(tools) > 0 {
+		promptBuilder.WriteString("\n\n# Available Tools & Guidelines\n")
+
+		for _, t := range tools {
+			toolMap[t.Definition.Function.Name] = t
+			promptBuilder.WriteString(fmt.Sprintf("- %s: %s\n", t.Definition.Function.Name, t.Guidelines))
+		}
+	}
+
+	return &Agent{
+		Name:        name,
+		Role:        promptBuilder.String(),
+		Model:       model,
+		Temperature: temp,
+		Tools:       toolMap,
+	}
+}
+
+func (a *Agent) ExecuteTask(prompt string) string {
+	history := []Message{
+		{Role: "system", Content: a.Role},
+		{Role: "user", Content: prompt},
+	}
+
+	finalHistory := a.Run(history)
+
+	return finalHistory[len(finalHistory)-1].Content
+}
+
+// RunAgentLoop handles the core ReAct (Reasoning and Acting) cycle with streaming
+func (a *Agent) Run(history []Message) []Message {
+	serverURL := "http://localhost:8080/v1/chat/completions"
+	maxSteps := 5
 	client := &http.Client{Timeout: 2 * time.Minute}
 
+	var apiTools []APITool
+	for _, t := range a.Tools {
+		apiTools = append(apiTools, t.Definition)
+	}
+
 	for step := 1; step <= maxSteps; step++ {
-		fmt.Printf("\n[Agent Step %d]\n", step)
+		fmt.Printf("\n[%s Step %d]\n", a.Name, step)
 
 		reqBody := ChatRequest{
-			Model:       "local-model",
+			Model:       a.Model,
 			Messages:    history,
-			Temperature: &temp,
+			Temperature: &a.Temperature,
 			Stream:      true,
-			Tools:       tools,
+		}
+
+		if len(apiTools) > 0 {
+			reqBody.Tools = apiTools
 		}
 
 		jsonBytes, _ := json.Marshal(reqBody)
@@ -37,7 +78,7 @@ func RunAgentLoop(history []Message) []Message {
 
 		resp, err := client.Do(req)
 		if err != nil {
-			log.Fatalf("Agent network error: %v", err)
+			log.Fatalf("[%s] network error: %v", a.Name, err)
 		}
 
 		responseMsg := streamAndBuildMessage(resp)
@@ -49,7 +90,17 @@ func RunAgentLoop(history []Message) []Message {
 
 			for _, tc := range responseMsg.ToolCalls {
 				fmt.Printf("\n>> Executing Tool: %s\n", tc.Function.Name)
-				toolResult := executeTool(tc.Function.Name, tc.Function.Arguments)
+				var toolResult string
+
+				tool, exists := a.Tools[tc.Function.Name]
+
+				// toolResult := executeTool(tc.Function.Name, tc.Function.Arguments)
+				if !exists {
+					toolResult = fmt.Sprintf("Error: Tool '%s' not found or not permitted for this agent.", tc.Function.Name)
+				} else {
+					toolResult = tool.Execute(tc.Function.Arguments)
+				}
+
 				history = append(history, Message{
 					Role:       "tool",
 					Content:    toolResult,

@@ -16,110 +16,79 @@ var (
 	wasNewlyCreated   bool
 )
 
-// Registry of tools provided to the LLM
-var tools = []Tool{
-	{
-		Type: "function",
-		Function: FunctionDef{
-			Name:        "calculate_speed",
-			Description: "Calculate average speed given distance, and time",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"distance": map[string]any{"type": "number"},
-					"time":     map[string]any{"type": "number"},
-				},
-				"required": []string{"distance", "time"},
+var listFilesToolDef = APITool{
+	Type: "function",
+	Function: FunctionDef{
+		Name:        "list_files",
+		Description: "List all files and directories in the specified path",
+		Parameters: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"path": map[string]any{"type": "string"},
 			},
-		},
-	},
-	{
-		Type: "function",
-		Function: FunctionDef{
-			Name:        "list_files",
-			Description: "List all files and directories in the specified path",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"path": map[string]any{"type": "string"},
-				},
-				"required": []string{"path"},
-			},
-		},
-	},
-	{
-		Type: "function",
-		Function: FunctionDef{
-			Name:        "read_file",
-			Description: "Read the contents of a file. You can optionally specify a start_line and end_line to read a specific chunk. Lines are 1-indexed.",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"path": map[string]any{
-						"type":        "string",
-						"description": "The absolute or relative path to the file",
-					},
-					"start_line": map[string]any{
-						"type":        "integer",
-						"description": "Optional. The line number to start reading from (1-indexed).",
-					},
-					"end_line": map[string]any{
-						"type":        "integer",
-						"description": "Optional. The line number to stop reading at (inclusive).",
-					},
-				},
-				"required": []string{"path"},
-			},
-		},
-	},
-	{
-		Type: "function",
-		Function: FunctionDef{
-			Name:        "write_file",
-			Description: "Write entire content to a file. Overwrites existing files and creates missing directories. Automatically backs up the previous state.",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"path": map[string]any{
-						"type":        "string",
-						"description": "The absolute or relative path to the file.",
-					},
-					"content": map[string]any{
-						"type":        "string",
-						"description": "The complete new content of the file.",
-					},
-				},
-				"required": []string{"path", "content"},
-			},
-		},
-	},
-	{
-		Type: "function",
-		Function: FunctionDef{
-			Name:        "revert_file",
-			Description: "Reverts the last write_file operation. Use this immediately if you realize your last file write was incorrect.",
-			Parameters: map[string]any{
-				"type":       "object",
-				"properties": map[string]any{}, // Takes no arguments
-			},
+			"required": []string{"path"},
 		},
 	},
 }
 
-// executeTool acts as the central router for LLM function calls
-func executeTool(name string, arguments string) string {
-	switch name {
-	case "list_files":
-		return runListFiles(arguments)
-	case "read_file":
-		return runReadFile(arguments)
-	case "write_file":
-		return runWriteFile(arguments)
-	case "revert_file":
-		return runRevertFile()
-	default:
-		return fmt.Sprintf("Error: Unknown tool '%s'", name)
-	}
+var readFileToolDef = APITool{
+	Type: "function",
+	Function: FunctionDef{
+		Name:        "read_file",
+		Description: "Read the contents of a file. You can optionally specify a start_line and end_line to read a specific chunk. Lines are 1-indexed.",
+		Parameters: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"path": map[string]any{
+					"type":        "string",
+					"description": "The absolute or relative path to the file",
+				},
+				"start_line": map[string]any{
+					"type":        "integer",
+					"description": "Optional. The line number to start reading from (1-indexed).",
+				},
+				"end_line": map[string]any{
+					"type":        "integer",
+					"description": "Optional. The line number to stop reading at (inclusive).",
+				},
+			},
+			"required": []string{"path"},
+		},
+	},
+}
+
+var writeFileToolDef = APITool{
+	Type: "function",
+	Function: FunctionDef{
+		Name:        "write_file",
+		Description: "Write entire content to a file. Overwrites existing files and creates missing directories. Automatically backs up the previous state.",
+		Parameters: map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"path": map[string]any{
+					"type":        "string",
+					"description": "The absolute or relative path to the file.",
+				},
+				"content": map[string]any{
+					"type":        "string",
+					"description": "The complete new content of the file.",
+				},
+			},
+			"required": []string{"path", "content"},
+		},
+	},
+}
+
+var revertFileToolDef = APITool{
+	Type: "function",
+	Function: FunctionDef{
+		Name:        "revert_file",
+		Description: "Reverts the last write_file operation. Use this immediately if you realize your last file write was incorrect.",
+		Parameters: map[string]any{
+			"type":       "object",
+			"properties": map[string]any{}, // Takes no arguments
+		},
+	},
 }
 
 func runListFiles(arguments string) string {

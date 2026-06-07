@@ -1,5 +1,6 @@
 package main
 
+// API Communication types
 type Message struct {
 	Role       string     `json:"role"`
 	Content    string     `json:"content,omitempty"`
@@ -12,7 +13,7 @@ type ChatRequest struct {
 	Messages    []Message `json:"messages"`
 	Stream      bool      `json:"stream"`
 	Temperature *float64  `json:"temperature,omitempty"`
-	Tools       []Tool    `json:"tools,omitempty"`
+	Tools       []APITool `json:"tools,omitempty"`
 }
 
 type ChatResponse struct {
@@ -21,6 +22,7 @@ type ChatResponse struct {
 	} `json:"choices"`
 }
 
+// API Tool types
 type ToolCall struct {
 	ID       string `json:"id"`
 	Type     string `json:"type"`
@@ -36,31 +38,12 @@ type FunctionDef struct {
 	Parameters  any    `json:"parameters"`
 }
 
-type Tool struct {
+type APITool struct {
 	Type     string      `json:"type"`
 	Function FunctionDef `json:"function"`
 }
 
-type CalculateSpeedArgs struct {
-	Distance float64 `json:"distance"`
-	Time     float64 `json:"time"`
-}
-
-type ListFilesArgs struct {
-	Path string `json:"path"`
-}
-
-type ReadFileArgs struct {
-	Path      string `json:"path"`
-	StartLine *int   `json:"start_line,omitempty"`
-	EndLine   *int   `json:"end_line,omitempty"`
-}
-
-type WriteFileArgs struct {
-	Path    string `json:"path"`
-	Content string `json:"content"`
-}
-
+// Streaming Types
 type StreamChunk struct {
 	Choices []struct {
 		Delta struct {
@@ -76,4 +59,36 @@ type StreamChunk struct {
 			} `json:"tool_calls,omitempty"`
 		} `json:"delta"`
 	} `json:"choices"`
+}
+
+// Internal agent types
+type Tool struct {
+	Definition APITool
+	Guidelines string
+	Execute    func(arguments string) string
+}
+
+type Agent struct {
+	Name        string
+	Role        string
+	Model       string
+	Temperature float64
+	Tools       map[string]Tool
+}
+
+// Tool argument types
+
+type ListFilesArgs struct {
+	Path string `json:"path"`
+}
+
+type ReadFileArgs struct {
+	Path      string `json:"path"`
+	StartLine *int   `json:"start_line,omitempty"`
+	EndLine   *int   `json:"end_line,omitempty"`
+}
+
+type WriteFileArgs struct {
+	Path    string `json:"path"`
+	Content string `json:"content"`
 }
