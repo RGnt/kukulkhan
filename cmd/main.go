@@ -1,5 +1,3 @@
-// main.go
-
 package main
 
 import (
@@ -17,8 +15,13 @@ func main() {
 
 	history := []Message{
 		{
-			Role:    "system",
-			Content: "You are senior software engineering agent with access to tools you can interact with the filesystem.",
+			Role: "system",
+			Content: `
+			You are senior software engineering agent.
+			Before working on any multi-step task, ALWAYS call todo_write first to write your complete plant.
+			Execute each step in order.
+			Call todo_update after completing each step.
+			`,
 		},
 	}
 
@@ -27,7 +30,7 @@ func main() {
 		"You are the main coordinator. Delegate complex tasks.",
 		"Gemma 4 12b",
 		0.7,
-		[]Tool{listFilesTool, readFilesTool, writeFileTool, revertFileTool},
+		[]Tool{listFilesTool, readFilesTool, writeFileTool, revertFileTool, WriteTodoTool, ReadTodoTool, UpdateTodoTool, runGoTestsTool},
 	)
 
 	reader := bufio.NewReader(os.Stdin)

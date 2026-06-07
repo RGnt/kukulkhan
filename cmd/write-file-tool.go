@@ -19,10 +19,11 @@ var writeToolGuideline = `
 Writes a file to the local filesystem.
 
 Usage:
+- Make sure you ALWAYS read the file first, before writing to it if the file exists, so as to not accidentally remove prior content that is still needed. 
 - This tool will overwrite the existing file if there is one at the provided path.
 - NEVER create documentation files (*.md) or README files unless explicitly requested by the User.
 - Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.
-- Never write the line numbers in to the file`
+- NEVER write the line numbers in to the file`
 
 var writeFileToolDef = APITool{
 	Type: "function",

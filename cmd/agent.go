@@ -50,7 +50,7 @@ func (a *Agent) ExecuteTask(prompt string) string {
 func (a *Agent) Run(history []Message) []Message {
 	serverURL := "http://localhost:8080/v1/chat/completions"
 	maxSteps := 50
-	client := &http.Client{Timeout: 2 * time.Minute}
+	client := &http.Client{Timeout: 10 * time.Minute}
 
 	var apiTools []APITool
 	for _, t := range a.Tools {

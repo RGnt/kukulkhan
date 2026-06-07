@@ -92,3 +92,16 @@ type WriteFileArgs struct {
 	Path    string `json:"path"`
 	Content string `json:"content"`
 }
+
+type WriteTodoArgs struct {
+	Tasks []string `json:"tasks"`
+}
+
+type UpdateTodoArgs struct {
+	ID     int    `json:"id"`
+	Status string `json:"status"`
+}
+
+type RunGoTestsArgs struct {
+	Path string `json:"path"`
+}
