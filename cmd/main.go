@@ -9,38 +9,6 @@ import (
 	"strings"
 )
 
-var listFilesTool = Tool{
-	Definition: listFilesToolDef,
-	Guidelines: "Use when user asks to read a file",
-	Execute: func(arguments string) string {
-		return runListFiles(arguments)
-	},
-}
-
-var readFilesTool = Tool{
-	Definition: readFileToolDef,
-	Guidelines: "Use to read contents of the file",
-	Execute: func(arguments string) string {
-		return runReadFile(arguments)
-	},
-}
-
-var writeFileTool = Tool{
-	Definition: writeFileToolDef,
-	Guidelines: "Use to write to a file",
-	Execute: func(arguments string) string {
-		return runWriteFile(arguments)
-	},
-}
-
-var revertFileTool = Tool{
-	Definition: revertFileToolDef,
-	Guidelines: "Use to revert the contents of a file",
-	Execute: func(arguments string) string {
-		return runRevertFile()
-	},
-}
-
 func main() {
 	fmt.Println("======================================================")
 	fmt.Println(" Kukulkhan CLI Initialized ")
@@ -50,7 +18,7 @@ func main() {
 	history := []Message{
 		{
 			Role:    "system",
-			Content: "You are a helpful CLI agent running on a local machine. You have access to tools to calculate speed and list files. Answer questions concisely.",
+			Content: "You are senior software engineering agent with access to tools you can interact with the filesystem.",
 		},
 	}
 

@@ -49,7 +49,7 @@ func (a *Agent) ExecuteTask(prompt string) string {
 // RunAgentLoop handles the core ReAct (Reasoning and Acting) cycle with streaming
 func (a *Agent) Run(history []Message) []Message {
 	serverURL := "http://localhost:8080/v1/chat/completions"
-	maxSteps := 5
+	maxSteps := 50
 	client := &http.Client{Timeout: 2 * time.Minute}
 
 	var apiTools []APITool
