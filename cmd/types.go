@@ -105,3 +105,12 @@ type UpdateTodoArgs struct {
 type RunGoTestsArgs struct {
 	Path string `json:"path"`
 }
+
+type AddDirectoryArgs struct {
+	Path string `json:"path"`
+}
+
+type RemoveDirectoryArgs struct {
+	Path      string `json:"path"`
+	Recursive bool   `json:"recursive"` // Forces the LLM to explicitly request deep deletion
+}

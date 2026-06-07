@@ -49,8 +49,8 @@ func (a *Agent) ExecuteTask(prompt string) string {
 // RunAgentLoop handles the core ReAct (Reasoning and Acting) cycle with streaming
 func (a *Agent) Run(history []Message) []Message {
 	serverURL := "http://localhost:8080/v1/chat/completions"
-	maxSteps := 50
-	client := &http.Client{Timeout: 10 * time.Minute}
+	maxSteps := 500
+	client := &http.Client{Timeout: 5 * time.Minute}
 
 	var apiTools []APITool
 	for _, t := range a.Tools {
@@ -64,7 +64,7 @@ func (a *Agent) Run(history []Message) []Message {
 			Model:       a.Model,
 			Messages:    history,
 			Temperature: &a.Temperature,
-			Stream:      true,
+			Stream:      Config.StreamResponse,
 		}
 
 		if len(apiTools) > 0 {
@@ -74,14 +74,25 @@ func (a *Agent) Run(history []Message) []Message {
 		jsonBytes, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", serverURL, bytes.NewBuffer(jsonBytes))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "text/event-stream")
+
+		// Only request the stream header if streaming is enabled
+		if Config.StreamResponse {
+			req.Header.Set("Accept", "text/event-stream")
+		}
 
 		resp, err := client.Do(req)
 		if err != nil {
 			log.Fatalf("[%s] network error: %v", a.Name, err)
 		}
 
-		responseMsg := streamAndBuildMessage(resp)
+		var responseMsg Message
+
+		// <--- Branch the parsing logic based on Config --->
+		if Config.StreamResponse {
+			responseMsg = streamAndBuildMessage(resp)
+		} else {
+			responseMsg = parseStaticMessage(resp)
+		}
 		resp.Body.Close()
 
 		// The model invoked a tool
@@ -120,6 +131,20 @@ func (a *Agent) Run(history []Message) []Message {
 
 	fmt.Println("\n[Agent Error]: Reached maximum steps without returning a final answer.")
 	return history
+}
+
+func parseStaticMessage(resp *http.Response) Message {
+	var chatResp ChatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+		log.Fatalf("Agent static decode error: %v", err)
+	}
+
+	// If it's a text response, print it so the user can see it
+	if chatResp.Choices[0].Message.Content != "" {
+		fmt.Print(chatResp.Choices[0].Message.Content)
+	}
+
+	return chatResp.Choices[0].Message
 }
 
 func streamAndBuildMessage(resp *http.Response) Message {
