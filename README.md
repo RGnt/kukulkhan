@@ -19,7 +19,7 @@ A Go-based application that enables an LLM to interact with local tools, such as
 
 ### Prerequisites
 
-- Go (version 1.18 or higher recommended)
+- Go (version 1.25 or higher recommended)
 
 ### Installation
 
